@@ -36,6 +36,8 @@ export interface NewOrderInput {
   paymentMethod: string;
   discountCode: string | null;
   items: CartLine[];
+  /** Set only when a signed-in customer places the order with their own number. */
+  accountCustomerId?: number | null;
 }
 
 /** Today's date (YYYY-MM-DD) in the business timezone, Africa/Addis_Ababa. */
@@ -135,13 +137,14 @@ export function createOrder(db: Db, input: NewOrderInput, now: Date = new Date()
     const orderNo = newOrderNo(now);
     try {
       return tx(db, () => {
-        const customer = db
-          .prepare(
-            `INSERT INTO customers (name, phone, email) VALUES (?, ?, ?)
-             ON CONFLICT(phone) DO UPDATE SET name = excluded.name, email = COALESCE(excluded.email, customers.email)
-             RETURNING id`,
-          )
-          .get(name, phone, email) as { id: number };
+        let customerId: number | null = null;
+        if (input.accountCustomerId) {
+          const acct = db
+            .prepare("SELECT phone FROM customers WHERE id = ? AND password_hash IS NOT NULL")
+            .get(input.accountCustomerId) as { phone: string } | undefined;
+          if (!acct || acct.phone !== phone) throw new ValidationError("Please use the mobile number on your account.");
+          customerId = input.accountCustomerId;
+        }
 
         const trackingToken = randomBytes(16).toString("hex");
         const res = db
@@ -155,7 +158,7 @@ export function createOrder(db: Db, input: NewOrderInput, now: Date = new Date()
           .run(
             orderNo,
             trackingToken,
-            customer.id,
+            customerId,
             name,
             phone,
             email,

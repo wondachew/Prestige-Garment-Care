@@ -42,3 +42,8 @@ export function verifyAdminToken(token: string | undefined, now = Date.now()): b
 }
 
 export const ADMIN_SESSION_MAX_AGE = SESSION_MS / 1000;
+
+/** HMAC-SHA256 of a payload using SESSION_SECRET (used by customer sessions too). */
+export function hmacSign(payload: string): string {
+  return createHmac("sha256", secret()).update(payload).digest("hex");
+}
