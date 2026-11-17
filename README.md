@@ -83,3 +83,13 @@ npm run build && npm start
 - Confirm test prices, zone fees and plan terms with the owner. All are placeholders until then.
 - Obtain legal review of the policies page.
 - Review the reference site (klin.lu) for positioning once it is reachable from the build environment.
+
+## Local deployment (pilot testing)
+
+1. `npm install`
+2. Create `.env.local` (git-ignored) with `ADMIN_PASSWORD`, a 32+ character `SESSION_SECRET`, and optionally `DATABASE_PATH` (default `./data/esc.sqlite`).
+3. `npm run build && npm start -- -p 3000`, then open http://localhost:3000.
+4. Sign in at `/admin/login` with `ADMIN_PASSWORD`. Set the WhatsApp number, zone fees and prices in Settings and Prices before any test orders.
+5. Back up by copying `data/esc.sqlite` while the server is stopped, or use `sqlite3 data/esc.sqlite ".backup backup.sqlite"` while it runs.
+
+Not covered by local deployment: HTTPS, a public domain, automated backups, and staging or production hosts.
