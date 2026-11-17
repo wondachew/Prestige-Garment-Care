@@ -177,4 +177,15 @@ CREATE TABLE audit_logs (
 );
 `,
   },
+  {
+    id: "002_subscription_usage",
+    sql: `
+ALTER TABLE orders ADD COLUMN subscription_id INTEGER REFERENCES subscriptions(id);
+ALTER TABLE orders ADD COLUMN subscription_approved INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE orders ADD COLUMN subscription_credit_etb INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE orders ADD COLUMN subscription_covered_suits INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE orders ADD COLUMN subscription_covered_shirts INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX idx_orders_subscription ON orders(subscription_id);
+`,
+  },
 ];

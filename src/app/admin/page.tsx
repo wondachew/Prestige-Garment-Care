@@ -25,6 +25,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
         <div className="inline" style={{ justifyContent: "space-between" }}>
           <div><p className="eyebrow">Operations</p><h1>Dashboard</h1></div>
           <div className="inline">
+            <Link className="btn btn-ghost btn-sm" href="/admin/subscriptions">Subscriptions</Link>
             <Link className="btn btn-ghost btn-sm" href="/admin/catalogue">Prices</Link>
             <Link className="btn btn-ghost btn-sm" href="/admin/settings">Settings</Link>
             <form action={logoutAction}><button className="btn btn-navy btn-sm" type="submit">Sign out</button></form>

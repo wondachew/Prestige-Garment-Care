@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/admin-guard";
 import { audit, recordPayment, setOrderStatus, updateOrderOps, ValidationError, type PaymentInput } from "@/lib/orders";
 import { setSetting } from "@/lib/settings";
 import { isOrderStatus } from "@/lib/status";
+import { activateSubscription, attachOrderToSubscription, detachOrderFromSubscription } from "@/lib/subscriptions";
 
 const ACTOR = "admin";
 
@@ -216,4 +217,50 @@ export async function addDiscountAction(formData: FormData): Promise<void> {
   }
   audit(db, ACTOR, "discount.create", code);
   msg("/admin/settings", "ok", "Discount code added.");
+}
+
+export async function activateSubscriptionAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  try {
+    activateSubscription(
+      getDb(),
+      {
+        name: String(formData.get("name") ?? ""),
+        phone: String(formData.get("phone") ?? ""),
+        planId: Number(formData.get("planId")),
+        startsOn: String(formData.get("startsOn") ?? ""),
+      },
+      ACTOR,
+    );
+  } catch (e) {
+    if (e instanceof ValidationError) msg("/admin/subscriptions", "error", e.message);
+    throw e;
+  }
+  msg("/admin/subscriptions", "ok", "Subscription activated. Confirm the payment separately on the order or in the payment ledger.");
+}
+
+export async function attachOrderAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const db = getDb();
+  const orderNo = String(formData.get("orderNo") ?? "").trim();
+  const order = db.prepare("SELECT id FROM orders WHERE order_no = ?").get(orderNo) as { id: number } | undefined;
+  if (!order) msg("/admin/subscriptions", "error", "No order with that number.");
+  try {
+    attachOrderToSubscription(db, order.id, Number(formData.get("subscriptionId")), formData.get("approve") === "on", ACTOR);
+  } catch (e) {
+    if (e instanceof ValidationError) msg("/admin/subscriptions", "error", e.message);
+    throw e;
+  }
+  msg("/admin/subscriptions", "ok", "Order attached to subscription.");
+}
+
+export async function detachOrderAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  try {
+    detachOrderFromSubscription(getDb(), Number(formData.get("orderId")), ACTOR);
+  } catch (e) {
+    if (e instanceof ValidationError) msg("/admin/subscriptions", "error", e.message);
+    throw e;
+  }
+  msg("/admin/subscriptions", "ok", "Order detached from subscription.");
 }

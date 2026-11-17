@@ -31,8 +31,10 @@ partners and the WhatsApp number are all editable from the admin, not hardcoded.
 
 - Customer accounts (login, saved addresses, order history, receipts, complaints). Checkout is guest
   checkout, with a customer profile keyed by phone.
-- Subscriptions lifecycle: plans are shown and priced, but activation, allowance tracking, renewals and
-  upgrades are not implemented.
+- Subscriptions (partial): admin activates a plan for a customer (replacing any active one), attaches
+  orders so allowance is credited, waives overage with approval, and sees renewals due within 7 days.
+  Not yet built: subscription payment requests and receipts, automatic renewal/expiry reminders, upgrades
+  and downgrades mid-period, cancellation by the customer, and pickup-frequency limits.
 - Corporate module (accounts, employee lists, invoicing). The home page only offers a contact route.
 - Courier dashboard. Admin assigns couriers manually; couriers have no login yet.
 - Notifications (email, SMS, in-app). Only WhatsApp click-to-chat links exist.
@@ -66,6 +68,8 @@ npm run build && npm start
 - Payment status is derived from the ledger: paid minus refunded against the order total.
 - Revenue (booked order totals) is not profit. Contribution = revenue − cleaning − courier − packaging.
   It excludes fixed costs, so it is not operating profit.
+- Subscription allowance: suits and shirts/blouses count; overage is charged at catalogue price unless an
+  admin waives it. Covered garments are a credit on the order total.
 - Admin mutations are recorded in `audit_logs`.
 
 ## Open items before pilot
