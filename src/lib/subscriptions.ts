@@ -126,22 +126,23 @@ export function activateSubscription(
 export function attachOrderToSubscription(db: Db, orderId: number, subscriptionId: number, approve: boolean, actor: string): void {
   tx(db, () => {
     const order = db
-      .prepare("SELECT id, customer_id, subscription_id, subtotal_etb, discount_etb, delivery_fee_etb, preferred_collection_date FROM orders WHERE id = ?")
+      .prepare("SELECT id, customer_phone, subscription_id, subtotal_etb, discount_etb, delivery_fee_etb, preferred_collection_date FROM orders WHERE id = ?")
       .get(orderId) as
-      | { id: number; customer_id: number; subscription_id: number | null; subtotal_etb: number; discount_etb: number; delivery_fee_etb: number; preferred_collection_date: string }
+      | { id: number; customer_phone: string; subscription_id: number | null; subtotal_etb: number; discount_etb: number; delivery_fee_etb: number; preferred_collection_date: string }
       | undefined;
     if (!order) throw new ValidationError("Order not found.");
     if (order.subscription_id) throw new ValidationError("This order is already attached to a subscription.");
 
     const sub = db
       .prepare(
-        `SELECT s.*, p.suit_allowance, p.shirt_allowance FROM subscriptions s JOIN subscription_plans p ON p.id = s.plan_id WHERE s.id = ?`,
+        `SELECT s.*, p.suit_allowance, p.shirt_allowance, c.phone AS customer_phone FROM subscriptions s
+         JOIN subscription_plans p ON p.id = s.plan_id JOIN customers c ON c.id = s.customer_id WHERE s.id = ?`,
       )
       .get(subscriptionId) as
-      | { customer_id: number; status: string; starts_on: string; expires_on: string; suits_used: number; shirts_used: number; suit_allowance: number; shirt_allowance: number }
+      | { customer_id: number; customer_phone: string; status: string; starts_on: string; expires_on: string; suits_used: number; shirts_used: number; suit_allowance: number; shirt_allowance: number }
       | undefined;
     if (!sub) throw new ValidationError("Subscription not found.");
-    if (sub.customer_id !== order.customer_id) throw new ValidationError("That subscription belongs to a different customer.");
+    if (sub.customer_phone !== order.customer_phone) throw new ValidationError("That subscription belongs to a different customer.");
     if (sub.status !== "active") throw new ValidationError("That subscription is not active.");
     if (order.preferred_collection_date < sub.starts_on || order.preferred_collection_date > sub.expires_on) {
       throw new ValidationError("The collection date is outside this subscription period.");
@@ -156,9 +157,9 @@ export function attachOrderToSubscription(db: Db, orderId: number, subscriptionI
     const total = order.subtotal_etb - order.discount_etb - credit + order.delivery_fee_etb;
 
     db.prepare(
-      `UPDATE orders SET subscription_id = ?, subscription_approved = ?, subscription_credit_etb = ?,
+      `UPDATE orders SET customer_id = ?, subscription_id = ?, subscription_approved = ?, subscription_credit_etb = ?,
          subscription_covered_suits = ?, subscription_covered_shirts = ?, total_etb = ?, updated_at = datetime('now') WHERE id = ?`,
-    ).run(subscriptionId, approve ? 1 : 0, credit, coveredSuits, coveredShirts, total, orderId);
+    ).run(sub.customer_id, subscriptionId, approve ? 1 : 0, credit, coveredSuits, coveredShirts, total, orderId);
     db.prepare("UPDATE subscriptions SET suits_used = suits_used + ?, shirts_used = shirts_used + ? WHERE id = ?").run(coveredSuits, coveredShirts, subscriptionId);
     recomputePaymentStatus(db, orderId);
     audit(db, actor, "subscription.attach", `order ${orderId} sub ${subscriptionId} covered ${coveredSuits}s/${coveredShirts}sh credit ${credit} approved ${approve}`);

@@ -6,6 +6,8 @@ import { formatEtb, computeTotals } from "@/lib/money";
 import { findDiscount, PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@/lib/orders";
 import { getCollectionWindows } from "@/lib/settings";
 import { placeOrderAction } from "../actions";
+import { getCurrentCustomer } from "@/lib/customer-guard";
+import { listAddresses } from "@/lib/accounts";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +28,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     .filter((l): l is NonNullable<typeof l> => l !== null);
   const zones = db.prepare("SELECT id, name, fee_etb FROM delivery_zones WHERE active = 1 ORDER BY name").all() as { id: number; name: string; fee_etb: number }[];
   const windows = getCollectionWindows(db);
+  const me = await getCurrentCustomer();
+  const savedAddress = me ? listAddresses(db, me.id)[0] : undefined;
   const code = jar.get(DISCOUNT_COOKIE)?.value ?? null;
   const discount = code ? findDiscount(db, code)?.discount ?? null : null;
 
@@ -53,13 +57,13 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           <form action={placeOrderAction} className="panel">
             <h3>Your details</h3>
             <div className="row2">
-              <div className="field"><label htmlFor="customerName">Full name</label><input id="customerName" name="customerName" required autoComplete="name" minLength={2} /></div>
-              <div className="field"><label htmlFor="phone">Mobile number</label><input id="phone" name="phone" type="tel" required autoComplete="tel" placeholder="0911 234 567 or +251 911 234 567" /></div>
+              <div className="field"><label htmlFor="customerName">Full name</label><input id="customerName" name="customerName" required autoComplete="name" minLength={2} defaultValue={me?.name ?? ""} /></div>
+              <div className="field"><label htmlFor="phone">Mobile number</label><input id="phone" name="phone" type="tel" required autoComplete="tel" placeholder="0911 234 567 or +251 911 234 567" defaultValue={me?.phone ?? ""} readOnly={!!me} /></div>
             </div>
-            <div className="field"><label htmlFor="email">Email <small>(optional)</small></label><input id="email" name="email" type="email" autoComplete="email" /></div>
+            <div className="field"><label htmlFor="email">Email <small>(optional)</small></label><input id="email" name="email" type="email" autoComplete="email" defaultValue={me?.email ?? ""} /></div>
 
             <h3 style={{ marginTop: 22 }}>Collection</h3>
-            <div className="field"><label htmlFor="collectionAddress">Collection address</label><input id="collectionAddress" name="collectionAddress" required placeholder="Building or office name, street, sub-city" /></div>
+            <div className="field"><label htmlFor="collectionAddress">Collection address</label><input id="collectionAddress" name="collectionAddress" required placeholder="Building or office name, street, sub-city" defaultValue={savedAddress?.address_text ?? ""} /></div>
             <div className="row2">
               <div className="field"><label htmlFor="zoneId">Sub-city / delivery zone</label>
                 <select id="zoneId" name="zoneId" required defaultValue={zones[0]?.id}>
@@ -115,6 +119,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
               <dt>Delivery fee</dt><dd className="muted">Per zone, shown above</dd>
             </dl>
             <p className="muted" style={{ fontSize: ".9rem" }}>Your final total is confirmed on your order page.</p>
+            {me ? null : <p className="muted" style={{ fontSize: ".9rem" }}><Link href="/account/login">Log in</Link> to prefill your details and track all your orders.</p>}
             <Link href="/cart" className="btn btn-ghost btn-sm">Edit cart</Link>
           </aside>
         </div>

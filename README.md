@@ -25,12 +25,18 @@ partners and the WhatsApp number are all editable from the admin, not hardcoded.
   - Settings: business contact, WhatsApp number, collection windows, delivery zones and fees, couriers,
     cleaning partners, discount codes.
 - **WhatsApp**: floating button and click-to-chat links, shown only once a number is set in admin.
+- **Customer accounts** (`/account`): register and log in with mobile number and password (scrypt hashing,
+  signed 30-day session cookie, login throttled to 5 failures per 15 minutes). Accounts show orders,
+  subscription status and saved addresses (up to 10). Checkout prefills from the account. Orders are linked to
+  an account only when a signed-in customer places them with their own number. Guest orders are never linked,
+  and a number already on file cannot be registered by someone else (such cases are linked manually for now).
 - **Policies** page (draft; needs legal review).
 
 ## Not yet built (honest gap list)
 
-- Customer accounts (login, saved addresses, order history, receipts, complaints). Checkout is guest
-  checkout, with a customer profile keyed by phone.
+- Account gaps: SMS verification of the number, password reset, profile and email editing, receipts, and
+  complaints/feedback. Numbers already on file (guest history or subscriptions) need manual linking.
+  Login throttling is in-memory and per process.
 - Subscriptions (partial): admin activates a plan for a customer (replacing any active one), attaches
   orders so allowance is credited, waives overage with approval, and sees renewals due within 7 days.
   Not yet built: subscription payment requests and receipts, automatic renewal/expiry reminders, upgrades
@@ -42,7 +48,7 @@ partners and the WhatsApp number are all editable from the admin, not hardcoded.
 - Automated payment APIs (Telebirr, CBE Birr). Payments are recorded manually by the admin.
 - Amharic localisation. Brand photography is not included; the hero uses a navy gradient placeholder.
 - Testimonials: none are shown until real, consented testimonials are collected.
-- Authentication for staff roles. Only one admin password exists.
+- Staff roles. There is only one admin password, with no role separation.
 - Deployment, backups and a staging environment.
 
 ## Running locally
@@ -77,3 +83,13 @@ npm run build && npm start
 - Confirm test prices, zone fees and plan terms with the owner. All are placeholders until then.
 - Obtain legal review of the policies page.
 - Review the reference site (klin.lu) for positioning once it is reachable from the build environment.
+
+## Local deployment (pilot testing)
+
+1. `npm install`
+2. Create `.env.local` (git-ignored) with `ADMIN_PASSWORD`, a 32+ character `SESSION_SECRET`, and optionally `DATABASE_PATH` (default `./data/esc.sqlite`).
+3. `npm run build && npm start -- -p 3000`, then open http://localhost:3000.
+4. Sign in at `/admin/login` with `ADMIN_PASSWORD`. Set the WhatsApp number, zone fees and prices in Settings and Prices before any test orders.
+5. Back up by copying `data/esc.sqlite` while the server is stopped, or use `sqlite3 data/esc.sqlite ".backup backup.sqlite"` while it runs.
+
+Not covered by local deployment: HTTPS, a public domain, automated backups, and staging or production hosts.

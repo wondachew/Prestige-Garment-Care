@@ -6,6 +6,7 @@ import { getSetting } from "@/lib/settings";
 import { whatsappLink } from "@/lib/whatsapp";
 import { CART_COOKIE, parseCart } from "@/lib/cart";
 import { cookies } from "next/headers";
+import { getCurrentCustomer } from "@/lib/customer-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const phone = getSetting(db, "business_phone");
   const email = getSetting(db, "business_email");
   const cartCount = parseCart((await cookies()).get(CART_COOKIE)?.value).reduce((n, i) => n + i.quantity, 0);
+  const me = await getCurrentCustomer();
   const wa = whatsappLink(number, "Hello Executive Suit Care, I would like to enquire about your garment care service.");
 
   return (
@@ -36,6 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/#how-it-works">How it works</Link>
               <Link href="/#subscriptions">Subscriptions</Link>
               <Link href="/#corporate">Corporate</Link>
+              <Link href={me ? "/account" : "/account/login"}>{me ? "My account" : "Log in"}</Link>
               <Link href={`/cart`} className="cart-link">Cart{cartCount ? ` (${cartCount})` : ""}</Link>
             </nav>
           </div>

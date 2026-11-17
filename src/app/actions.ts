@@ -14,6 +14,7 @@ import {
   type CartItem,
 } from "@/lib/cart";
 import { createOrder, findDiscount, ValidationError } from "@/lib/orders";
+import { getCurrentCustomer } from "@/lib/customer-guard";
 
 const COOKIE_OPTS = {
   path: "/",
@@ -78,6 +79,7 @@ export async function placeOrderAction(formData: FormData): Promise<void> {
   const items = parseCart(jar.get(CART_COOKIE)?.value);
   const collectionAddress = String(formData.get("collectionAddress") ?? "");
   const deliverySame = formData.get("deliverySameAsCollection") === "on";
+  const me = await getCurrentCustomer();
   let result: { orderNo: string; trackingToken: string };
   try {
     result = createOrder(getDb(), {
@@ -94,6 +96,7 @@ export async function placeOrderAction(formData: FormData): Promise<void> {
       paymentMethod: String(formData.get("paymentMethod") ?? ""),
       discountCode: String(formData.get("discountCode") ?? "") || jar.get(DISCOUNT_COOKIE)?.value || null,
       items: items.map((i) => ({ serviceId: i.serviceId, quantity: i.quantity, careNotes: i.careNotes })),
+      accountCustomerId: me?.id ?? null,
     });
   } catch (e) {
     if (e instanceof ValidationError) redirect(`/checkout?error=${encodeURIComponent(e.message)}`);

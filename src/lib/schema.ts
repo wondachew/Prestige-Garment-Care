@@ -188,4 +188,21 @@ ALTER TABLE orders ADD COLUMN subscription_covered_shirts INTEGER NOT NULL DEFAU
 CREATE INDEX idx_orders_subscription ON orders(subscription_id);
 `,
   },
+  {
+    id: "003_customer_accounts",
+    sql: `
+ALTER TABLE customers ADD COLUMN password_hash TEXT;
+CREATE TABLE addresses (
+  id INTEGER PRIMARY KEY,
+  customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  sub_city TEXT NOT NULL DEFAULT '',
+  building TEXT NOT NULL DEFAULT '',
+  landmark TEXT NOT NULL DEFAULT '',
+  address_text TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_addresses_customer ON addresses(customer_id);
+`,
+  },
 ];
